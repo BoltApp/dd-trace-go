@@ -10,17 +10,15 @@ package redis
 import (
 	"bytes"
 	"context"
-
 	"math"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/go-redis/redis/v7"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-
-	"github.com/go-redis/redis/v8"
 )
 
 type datadogHook struct {
