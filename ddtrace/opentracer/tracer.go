@@ -20,6 +20,8 @@
 package opentracer
 
 import (
+	"context"
+
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/internal"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -35,6 +37,7 @@ func New(opts ...tracer.StartOption) opentracing.Tracer {
 }
 
 var _ opentracing.Tracer = (*opentracer)(nil)
+var _ opentracing.TracerContextWithSpanExtension = (*opentracer)(nil)
 
 // opentracer implements opentracing.Tracer on top of ddtrace.Tracer.
 type opentracer struct{ ddtrace.Tracer }
@@ -47,7 +50,7 @@ func (t *opentracer) StartSpan(operationName string, options ...opentracing.Star
 	}
 	opts := []ddtrace.StartSpanOption{tracer.StartTime(sso.StartTime)}
 	for _, ref := range sso.References {
-		if v, ok := ref.ReferencedContext.(ddtrace.SpanContext); ok && ref.Type == opentracing.ChildOfRef {
+		if v, ok := ref.ReferencedContext.(ddtrace.SpanContext); ok {
 			opts = append(opts, tracer.ChildOf(v))
 			break // can only have one parent
 		}
@@ -83,4 +86,13 @@ func (t *opentracer) Extract(format interface{}, carrier interface{}) (opentraci
 	default:
 		return nil, opentracing.ErrUnsupportedFormat
 	}
+}
+
+// ContextWithSpan implements opentracing.TracerContextWithSpanExtension.
+func (t *opentracer) ContextWithSpanHook(ctx context.Context, openSpan opentracing.Span) context.Context {
+	ddSpan, ok := openSpan.(*span)
+	if !ok {
+		return ctx
+	}
+	return tracer.ContextWithSpan(ctx, ddSpan.Span)
 }
